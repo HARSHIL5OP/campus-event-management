@@ -5,19 +5,29 @@ import { Button } from "../../components/ui/Button"
 import { Input } from "../../components/ui/Input"
 import { Label } from "../../components/ui/Label"
 import { motion } from "framer-motion"
+import { useAuth } from "../../contexts/AuthContext"
+import { toast } from "sonner"
 
 const ForgotPassword = () => {
     const [isLoading, setIsLoading] = useState(false)
     const [isSubmitted, setIsSubmitted] = useState(false)
+    const [email, setEmail] = useState("")
+    const { resetPassword } = useAuth()
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         setIsLoading(true)
-        // Simulate API call
-        setTimeout(() => {
-            setIsLoading(false)
+        try {
+            await resetPassword(email)
             setIsSubmitted(true)
-        }, 1500)
+            toast.success("Password reset link sent")
+        } catch (error) {
+            console.error(error)
+            const errorMessage = error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '').replace(/-/g, ' ');
+            toast.error(errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1))
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     if (isSubmitted) {
@@ -77,6 +87,8 @@ const ForgotPassword = () => {
                         required
                         autoFocus
                         className="bg-background/50"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                     />
                 </div>
 

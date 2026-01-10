@@ -1,24 +1,59 @@
 import { Link, useNavigate } from "react-router-dom"
-import { Eye, EyeOff, Loader2, ArrowRight, Github, Mail } from "lucide-react"
+import { Eye, EyeOff, Loader2, ArrowRight, Github } from "lucide-react"
 import { useState } from "react"
 import { Button } from "../../components/ui/Button"
 import { Input } from "../../components/ui/Input"
 import { Label } from "../../components/ui/Label"
+import { useAuth } from "../../contexts/AuthContext"
+import { toast } from "sonner"
 
 const Login = () => {
     const [isLoading, setIsLoading] = useState(false)
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
     const navigate = useNavigate()
+    const { login, loginWithGoogle, loginWithGithub } = useAuth()
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         setIsLoading(true)
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            await login(email, password)
+            toast.success("Login successful")
+            navigate("/home")
+        } catch (error) {
+            console.error(error)
+            // Clean up firebase error messages
+            const errorMessage = error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '').replace(/-/g, ' ');
+            toast.error(errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1))
+        } finally {
             setIsLoading(false)
-            // Navigate to dashboard or home on success
-            console.log("Logged in!")
-        }, 2000)
+        }
+    }
+
+    const handleGoogleLogin = async () => {
+        try {
+            await loginWithGoogle()
+            toast.success("Login successful")
+            navigate("/home")
+        } catch (error) {
+            console.error(error)
+            const errorMessage = error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '').replace(/-/g, ' ');
+            toast.error(errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1))
+        }
+    }
+
+    const handleGithubLogin = async () => {
+        try {
+            await loginWithGithub()
+            toast.success("Login successful")
+            navigate("/home")
+        } catch (error) {
+            console.error(error)
+            const errorMessage = error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '').replace(/-/g, ' ');
+            toast.error(errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1))
+        }
     }
 
     return (
@@ -41,6 +76,8 @@ const Login = () => {
                         autoFocus
                         autoComplete="email"
                         className="bg-background/50"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                     />
                 </div>
                 <div className="space-y-2">
@@ -61,6 +98,8 @@ const Login = () => {
                             required
                             autoComplete="current-password"
                             className="bg-background/50 pr-10"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
                         />
                         <button
                             type="button"
@@ -115,12 +154,12 @@ const Login = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" className="w-full" type="button">
+                <Button variant="outline" className="w-full" type="button" onClick={handleGithubLogin}>
                     <Github className="mr-2 h-4 w-4" />
                     GitHub
                 </Button>
-                <Button variant="outline" className="w-full" type="button">
-                    <div className="mr-2 h-4 w-4 flex items-center justify-center font-bold">G</div> {/* Simplified Google icon */}
+                <Button variant="outline" className="w-full" type="button" onClick={handleGoogleLogin}>
+                    <div className="mr-2 h-4 w-4 flex items-center justify-center font-bold">G</div>
                     Google
                 </Button>
             </div>

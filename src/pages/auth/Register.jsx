@@ -1,15 +1,24 @@
-import { Link } from "react-router-dom"
-import { Loader2, ArrowRight, Check, X } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { Loader2, ArrowRight, Check } from "lucide-react"
+import { useState } from "react"
 import { Button } from "../../components/ui/Button"
 import { Input } from "../../components/ui/Input"
 import { Label } from "../../components/ui/Label"
+import { useAuth } from "../../contexts/AuthContext"
+import { toast } from "sonner"
 import { cn } from "../../lib/utils"
 
 const Register = () => {
     const [isLoading, setIsLoading] = useState(false)
     const [password, setPassword] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
+    const [email, setEmail] = useState("")
+    const [firstName, setFirstName] = useState("")
+    const [lastName, setLastName] = useState("")
     const [typing, setTyping] = useState(false)
+
+    const { signup } = useAuth()
+    const navigate = useNavigate()
 
     // Visual password strength indicator logic
     const hasMinLength = password.length >= 8
@@ -21,8 +30,26 @@ const Register = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+
+        if (password !== confirmPassword) {
+            toast.error("Passwords do not match")
+            return
+        }
+
         setIsLoading(true)
-        setTimeout(() => setIsLoading(false), 2000)
+        try {
+            await signup(email, password, { firstName, lastName })
+            toast.success("Account created successfully")
+            setTimeout(() => {
+                navigate("/login")
+            }, 2000)
+        } catch (error) {
+            console.error(error)
+            // Clean up firebase error messages
+            const errorMessage = error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '').replace(/-/g, ' ');
+            toast.error(errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1))
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -38,17 +65,39 @@ const Register = () => {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="firstName">First name</Label>
-                        <Input id="firstName" placeholder="John" required className="bg-background/50" />
+                        <Input
+                            id="firstName"
+                            placeholder="John"
+                            required
+                            className="bg-background/50"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                        />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="lastName">Last name</Label>
-                        <Input id="lastName" placeholder="Doe" required className="bg-background/50" />
+                        <Input
+                            id="lastName"
+                            placeholder="Doe"
+                            required
+                            className="bg-background/50"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                        />
                     </div>
                 </div>
 
                 <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="john.doe@university.edu" required className="bg-background/50" />
+                    <Input
+                        id="email"
+                        type="email"
+                        placeholder="john.doe@university.edu"
+                        required
+                        className="bg-background/50"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                    />
                 </div>
 
                 <div className="space-y-2">
@@ -94,7 +143,15 @@ const Register = () => {
 
                 <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input id="confirmPassword" type="password" placeholder="Confirm your password" required className="bg-background/50" />
+                    <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="Confirm your password"
+                        required
+                        className="bg-background/50"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
                 </div>
 
                 <div className="flex items-start space-x-2 pt-2">
