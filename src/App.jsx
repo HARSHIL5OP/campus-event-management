@@ -5,7 +5,11 @@ import Login from "./pages/auth/Login"
 import Register from "./pages/auth/Register"
 import ForgotPassword from "./pages/auth/ForgotPassword"
 import Home from "./pages/Home"
+import CreateEvent from "./pages/organizer/CreateEvent"
+import OrganizerRoute from "./components/auth/OrganizerRoute"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
+import StudentRoute from "./components/auth/StudentRoute"
+import EventListing from "./pages/student/EventListing"
 
 const ProtectedRoute = () => {
   const { user, loading } = useAuth()
@@ -41,6 +45,17 @@ function App() {
           {/* Protected Routes - Redirect to Login if not logged in */}
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<Home />} />
+          </Route>
+
+          {/* Student Routes - Protected by Role */}
+          <Route element={<StudentRoute />}>
+            <Route path="/events" element={<EventListing />} />
+            {/* Future: <Route path="/event/:id" element={<EventDetails />} /> */}
+          </Route>
+
+          {/* Organizer Routes - Protected by Role */}
+          <Route element={<OrganizerRoute />}>
+            <Route path="/organizer/events/create" element={<CreateEvent />} />
           </Route>
 
           {/* Fallback route */}

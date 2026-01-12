@@ -18,11 +18,29 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [userProfile, setUserProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             setUser(currentUser);
+
+            if (currentUser) {
+                try {
+                    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+                    if (userDoc.exists()) {
+                        setUserProfile(userDoc.data());
+                    } else {
+                        console.warn("User profile not found in Firestore");
+                        setUserProfile(null);
+                    }
+                } catch (error) {
+                    console.error("Error fetching user profile:", error);
+                }
+            } else {
+                setUserProfile(null);
+            }
+
             setLoading(false);
         });
         return () => unsubscribe();
@@ -32,15 +50,23 @@ export const AuthProvider = ({ children }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Create user document in Firestore
-        await setDoc(doc(db, "users", user.uid), {
+        const newProfile = {
             uid: user.uid,
             email: user.email,
             role: "student",
             organizerRequestStatus: "none",
             createdAt: new Date().toISOString(),
             ...additionalData
-        });
+        };
+
+        // Create user document in Firestore
+        try {
+            await setDoc(doc(db, "users", user.uid), newProfile);
+            setUserProfile(newProfile);
+        } catch (error) {
+            console.error("Error writing to Firestore during signup:", error);
+            throw error;
+        }
 
         return userCredential;
     };
@@ -52,10 +78,11 @@ export const AuthProvider = ({ children }) => {
     const loginWithGoogle = async () => {
         try {
             const result = await signInWithPopup(auth, googleProvider);
-            // Check if user document exists, if not create it
-            const userDoc = await getDoc(doc(db, "users", result.user.uid));
+            const userDocRef = doc(db, "users", result.user.uid);
+            const userDoc = await getDoc(userDocRef);
+
             if (!userDoc.exists()) {
-                await setDoc(doc(db, "users", result.user.uid), {
+                const newProfile = {
                     uid: result.user.uid,
                     email: result.user.email,
                     role: "student",
@@ -63,10 +90,20 @@ export const AuthProvider = ({ children }) => {
                     createdAt: new Date().toISOString(),
                     firstName: result.user.displayName?.split(' ')[0] || '',
                     lastName: result.user.displayName?.split(' ').slice(1).join(' ') || '',
-                });
+                };
+                try {
+                    await setDoc(userDocRef, newProfile);
+                    setUserProfile(newProfile);
+                } catch (firestoreError) {
+                    console.error("Error writing to Firestore during Google login:", firestoreError);
+                    throw firestoreError;
+                }
+            } else {
+                setUserProfile(userDoc.data());
             }
             return result;
         } catch (error) {
+            console.error("Error with Google Login/Firestore:", error);
             throw error;
         }
     };
@@ -74,10 +111,11 @@ export const AuthProvider = ({ children }) => {
     const loginWithGithub = async () => {
         try {
             const result = await signInWithPopup(auth, githubProvider);
-            // Check if user document exists, if not create it
-            const userDoc = await getDoc(doc(db, "users", result.user.uid));
+            const userDocRef = doc(db, "users", result.user.uid);
+            const userDoc = await getDoc(userDocRef);
+
             if (!userDoc.exists()) {
-                await setDoc(doc(db, "users", result.user.uid), {
+                const newProfile = {
                     uid: result.user.uid,
                     email: result.user.email,
                     role: "student",
@@ -85,15 +123,26 @@ export const AuthProvider = ({ children }) => {
                     createdAt: new Date().toISOString(),
                     firstName: result.user.displayName?.split(' ')[0] || '',
                     lastName: result.user.displayName?.split(' ').slice(1).join(' ') || '',
-                });
+                };
+                try {
+                    await setDoc(userDocRef, newProfile);
+                    setUserProfile(newProfile);
+                } catch (firestoreError) {
+                    console.error("Error writing to Firestore during Github login:", firestoreError);
+                    throw firestoreError;
+                }
+            } else {
+                setUserProfile(userDoc.data());
             }
             return result;
         } catch (error) {
+            console.error("Error with Github Login/Firestore:", error);
             throw error;
         }
     };
 
     const logout = () => {
+        setUserProfile(null);
         return signOut(auth);
     };
 
@@ -103,6 +152,7 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         user,
+        userProfile,
         signup,
         login,
         loginWithGoogle,
