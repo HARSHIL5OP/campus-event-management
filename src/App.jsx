@@ -9,6 +9,8 @@ import CreateEvent from "./pages/organizer/CreateEvent"
 import OrganizerRoute from "./components/auth/OrganizerRoute"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import StudentRoute from "./components/auth/StudentRoute"
+import EventDetails from "./pages/student/EventDetails"
+
 import EventListing from "./pages/student/EventListing"
 
 const ProtectedRoute = () => {
@@ -45,12 +47,13 @@ function App() {
           {/* Protected Routes - Redirect to Login if not logged in */}
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<Home />} />
+            {/* Event Details is accessible to all authenticated users, but actions are restricted by role within the page */}
+            <Route path="/event/:id" element={<EventDetails />} />
           </Route>
 
           {/* Student Routes - Protected by Role */}
           <Route element={<StudentRoute />}>
             <Route path="/events" element={<EventListing />} />
-            {/* Future: <Route path="/event/:id" element={<EventDetails />} /> */}
           </Route>
 
           {/* Organizer Routes - Protected by Role */}
