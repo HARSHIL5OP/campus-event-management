@@ -21,7 +21,7 @@ const Login = () => {
         try {
             await login(email, password)
             toast.success("Login successful")
-            navigate("/home")
+            // Navigation handled automatically by router listening to auth state
         } catch (error) {
             console.error(error)
             // Clean up firebase error messages
@@ -36,7 +36,7 @@ const Login = () => {
         try {
             await loginWithGoogle()
             toast.success("Login successful")
-            navigate("/home")
+            // Navigation handled automatically by router
         } catch (error) {
             console.error(error)
             const errorMessage = error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '').replace(/-/g, ' ');
@@ -48,7 +48,7 @@ const Login = () => {
         try {
             await loginWithGithub()
             toast.success("Login successful")
-            navigate("/home")
+            // Navigation handled automatically by router
         } catch (error) {
             console.error(error)
             const errorMessage = error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '').replace(/-/g, ' ');

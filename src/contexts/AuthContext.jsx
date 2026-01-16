@@ -23,9 +23,10 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            setUser(currentUser);
-
+            // If we have a user, we must be in a loading state while fetching their profile
+            // This prevents the app from rendering protected routes with a user but no profile
             if (currentUser) {
+                setLoading(true);
                 try {
                     const userDoc = await getDoc(doc(db, "users", currentUser.uid));
                     if (userDoc.exists()) {
@@ -34,11 +35,18 @@ export const AuthProvider = ({ children }) => {
                         console.warn("User profile not found in Firestore");
                         setUserProfile(null);
                     }
+                    // Only set the user availability AFTER the profile is attempted
+                    setUser(currentUser);
                 } catch (error) {
                     console.error("Error fetching user profile:", error);
+                    // In case of error, we might want to still allow access or force logout?
+                    // For now, logging the error but keeping the user logged in (might need fallbacks)
+                    // Or we could set user(null) to force re-login.
+                    setUser(currentUser);
                 }
             } else {
                 setUserProfile(null);
+                setUser(null);
             }
 
             setLoading(false);
@@ -141,6 +149,31 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const upgradeToOrganizer = async () => {
+        if (!user) return;
+
+        try {
+            // 1. Update Firestore
+            const userRef = doc(db, "users", user.uid);
+            await setDoc(userRef, {
+                organizerRequestStatus: "approved",
+                role: "organizer"
+            }, { merge: true });
+
+            // 2. Update local state immediately for instant UI feedback
+            setUserProfile(prev => ({
+                ...prev,
+                organizerRequestStatus: "approved",
+                role: "organizer"
+            }));
+
+            return true;
+        } catch (error) {
+            console.error("Error upgrading to organizer:", error);
+            throw error;
+        }
+    };
+
     const logout = () => {
         setUserProfile(null);
         return signOut(auth);
@@ -159,6 +192,7 @@ export const AuthProvider = ({ children }) => {
         loginWithGithub,
         logout,
         resetPassword,
+        upgradeToOrganizer,
         loading
     };
 
